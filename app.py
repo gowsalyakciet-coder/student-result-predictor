@@ -24,7 +24,7 @@ def home():
 
     return f"""
     <html>
-    <head><title>Student Result Predictor</title></head>
+    <head><title>Student Result Predictor 01</title></head>
     <body>
         <h1>Student Result Predictor</h1>
         <h3>Model Version: 1.0</h3>
