@@ -2,42 +2,41 @@
 set -e
 
 APP_DIR="/home/ec2-user/student-result-predictor"
+VENV_DIR="$APP_DIR/venv"
 
 echo "Starting Student Result Predictor deployment..."
 
-# Install Python using the available package manager
-if command -v apt-get >/dev/null 2>&1; then
-    sudo apt-get update
-    sudo apt-get install -y python3 python3-pip
-elif command -v yum >/dev/null 2>&1; then
-    sudo yum install -y python3 python3-pip
-elif command -v dnf >/dev/null 2>&1; then
-    sudo dnf install -y python3 python3-pip
-else
-    echo "ERROR: No supported package manager found."
-    exit 1
-fi
+# Install Python and virtual environment support
+sudo apt-get update
+sudo apt-get install -y python3 python3-pip python3-venv
 
-# Navigate to the deployed application
+# Move to application directory
 cd "$APP_DIR"
 
-# Install Python dependencies
-python3 -m pip install -r requirements.txt
+# Create virtual environment if it does not exist
+if [ ! -f "$VENV_DIR/bin/python" ]; then
+    python3 -m venv "$VENV_DIR"
+fi
 
-# Stop the previous application process if running
+# Install dependencies inside virtual environment
+"$VENV_DIR/bin/python" -m pip install --upgrade pip
+"$VENV_DIR/bin/python" -m pip install -r requirements.txt
+
+# Stop previous application process if running
 pkill -f '[s]treamlit run app.py' || true
 pkill -f '[p]ython3 app.py' || true
 
-# Start the application
-nohup python3 app.py > app.log 2>&1 &
+# Start application in background
+nohup "$VENV_DIR/bin/python" app.py > app.log 2>&1 &
 
-sleep 3
+APP_PID=$!
+sleep 5
 
-# Check whether the application is still running
-if kill -0 "$!" 2>/dev/null; then
+# Verify process startup
+if kill -0 "$APP_PID" 2>/dev/null; then
     echo "Application process started successfully."
 else
-    echo "ERROR: Application failed to start."
+    echo "Application failed to start:"
     tail -50 app.log || true
     exit 1
 fi
